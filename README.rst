@@ -97,9 +97,9 @@ Take the Linux system for example:
 Support and announcements
 =========================
 
-Downloads and bug tracking can be found at the [main project website](http://github.com/aliyun/django-oss-storage)
+Downloads and bug tracking can be found at the `main project website <http://github.com/aliyun/django-oss-storage>`_.
 
 License
 =======
 
-- `MIT <https://github.com/aliyun/django-oss-storage/blob/master/LICENSE>`
+- `MIT <https://github.com/aliyun/django-oss-storage/blob/master/LICENSE>`_.
