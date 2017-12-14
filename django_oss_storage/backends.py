@@ -45,11 +45,11 @@ class OssStorage(Storage):
     Aliyun OSS Storage
     """
 
-    def __init__(self):
-        self.access_key_id = self._get_config('OSS_ACCESS_KEY_ID')
-        self.access_key_secret = self._get_config('OSS_ACCESS_KEY_SECRET')
-        self.end_point = _normalize_endpoint(self._get_config('OSS_ENDPOINT'))
-        self.bucket_name = self._get_config('OSS_BUCKET_NAME')
+    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None):
+        self.access_key_id = access_key_id if access_key_id else self._get_config('OSS_ACCESS_KEY_ID')
+        self.access_key_secret = access_key_secret if access_key_secret else self._get_config('OSS_ACCESS_KEY_SECRET')
+        self.end_point = _normalize_endpoint(end_point if end_point else self._get_config('OSS_ENDPOINT'))
+        self.bucket_name = bucket_name if bucket_name else self._get_config('OSS_BUCKET_NAME')
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
