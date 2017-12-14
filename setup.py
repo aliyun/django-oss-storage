@@ -22,7 +22,7 @@ with open('README.rst', 'rb') as f:
     readme = f.read().decode('utf-8')
 
 setup(
-    name='django-oss-storage',
+    name='livingbio-django-oss-storage',
     version=version,
     description='Django Aliyun OSS (Object Storage Service) storage',
     long_description=readme,
