@@ -26,6 +26,17 @@ from oss2 import Auth, Service, Bucket, ObjectIterator
 from .defaults import logger
 
 
+def _get_config(name):
+    config = os.environ.get(name, getattr(settings, name, None))
+    if config is not None:
+        if isinstance(config, six.string_types):
+            return config.strip()
+        else:
+            return config
+    else:
+        raise ImproperlyConfigured("'%s not found in env variables or setting.py" % name)
+
+
 def _normalize_endpoint(endpoint):
     if not endpoint.startswith('http://') and not endpoint.startswith('https://'):
         return 'https://' + endpoint
@@ -46,10 +57,10 @@ class OssStorage(Storage):
     """
 
     def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None):
-        self.access_key_id = access_key_id if access_key_id else self._get_config('OSS_ACCESS_KEY_ID')
-        self.access_key_secret = access_key_secret if access_key_secret else self._get_config('OSS_ACCESS_KEY_SECRET')
-        self.end_point = _normalize_endpoint(end_point if end_point else self._get_config('OSS_ENDPOINT'))
-        self.bucket_name = bucket_name if bucket_name else self._get_config('OSS_BUCKET_NAME')
+        self.access_key_id = access_key_id if access_key_id else _get_config('OSS_ACCESS_KEY_ID')
+        self.access_key_secret = access_key_secret if access_key_secret else _get_config('OSS_ACCESS_KEY_SECRET')
+        self.end_point = _normalize_endpoint(end_point if end_point else _get_config('OSS_ENDPOINT'))
+        self.bucket_name = bucket_name if bucket_name else _get_config('OSS_BUCKET_NAME')
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
@@ -60,16 +71,6 @@ class OssStorage(Storage):
             self.bucket.get_bucket_acl().acl
         except oss2.exceptions.NoSuchBucket:
             raise SuspiciousOperation("Bucket '%s' does not exist." % self.bucket_name)
-
-    def _get_config(self, name):
-        config = os.environ.get(name, getattr(settings, name, None))
-        if config is not None:
-            if isinstance(config, six.string_types):
-                return config.strip()
-            else:
-                return config
-        else:
-            raise ImproperlyConfigured("'%s not found in env variables or setting.py" % name)
 
     def _get_key_name(self, name):
         """
@@ -223,7 +224,7 @@ class OssMediaStorage(OssStorage):
 
 
 class OssStaticStorage(OssStorage):
-    def __init__(self):
+    def __init__(self, ):
         self.location = settings.STATIC_URL
         logger().info("locatin: %s", self.location)
         super(OssStaticStorage, self).__init__()
