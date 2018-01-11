@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os 
+import os
 import logging
 import requests
 from datetime import timedelta
@@ -13,7 +13,7 @@ from django.core.files.storage import default_storage
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.utils import timezone
 from django.utils.timezone import is_naive, make_naive, utc
-from django_oss_storage.backends import OssError, OssMediaStorage, OssStaticStorage
+from django_oss_storage.backends import OssError, OssMediaStorage, OssStaticStorage, OssStorage, _get_config
 from django_oss_storage import defaults
 from oss2 import to_unicode
 
@@ -256,3 +256,36 @@ class TestOssStorage(SimpleTestCase):
         defaults.log = custom_logger
 
         self.assertEqual(defaults.logger(), custom_logger)
+
+    def test_initial_storage(self):
+        # unconnect original DEFAULT_FILE_STORAGE
+        with self.settings(DEFAULT_FILE_STORAGE='django.core.files.storage.FileSystemStorage'):
+            storage_with_populated_arguments = OssStorage(
+                access_key_id=settings.OSS_ACCESS_KEY_ID,
+                access_key_secret=settings.OSS_ACCESS_KEY_SECRET,
+                end_point=settings.OSS_ENDPOINT,
+                bucket_name=settings.OSS_BUCKET_NAME)
+            self.assertEqual(storage_with_populated_arguments.access_key_id,
+                             settings.OSS_ACCESS_KEY_ID)
+            self.assertEqual(storage_with_populated_arguments.access_key_secret,
+                             settings.OSS_ACCESS_KEY_SECRET)
+            self.assertEqual(storage_with_populated_arguments.end_point.split('//')[-1],
+                             settings.OSS_ENDPOINT)
+            self.assertEqual(storage_with_populated_arguments.bucket_name,
+                             settings.OSS_BUCKET_NAME)
+
+            storage_with_default_arguments = OssStorage()
+            self.assertEqual(storage_with_default_arguments.access_key_id,
+                             settings.OSS_ACCESS_KEY_ID)
+            self.assertEqual(storage_with_default_arguments.access_key_secret,
+                             settings.OSS_ACCESS_KEY_SECRET)
+            self.assertEqual(storage_with_default_arguments.end_point.split('//')[-1],
+                             settings.OSS_ENDPOINT)
+            self.assertEqual(storage_with_default_arguments.bucket_name,
+                             settings.OSS_BUCKET_NAME)
+
+    def test_get_config(self):
+        self.assertEqual(_get_config('OSS_ACCESS_KEY_ID'), settings.OSS_ACCESS_KEY_ID)
+
+        self.assertRaises(ImproperlyConfigured):
+            _get_config('INVALID_ENV_VARIABLE_NAME')
