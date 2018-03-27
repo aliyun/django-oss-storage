@@ -130,7 +130,7 @@ class OssStorage(Storage):
         if name.endswith("/"):
             # This looks like a directory, but OSS has no concept of directories
             # need to check whether the key starts with this prefix
-            result = self.bucket.list_objects(prefix=target_name, delimiter='', marker='', max_keys=1)
+            result = self.bucket.list_objects(prefix=target_name + '/', delimiter='', marker='', max_keys=1)
             if len(result.object_list) == 0:
                 logger().debug("object list: %s", result.object_list)
             else:
