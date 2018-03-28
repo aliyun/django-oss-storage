@@ -61,7 +61,7 @@ class OssStorage(Storage):
         self.access_key_secret = access_key_secret if access_key_secret else _get_config('OSS_ACCESS_KEY_SECRET')
         self.end_point = _normalize_endpoint(end_point if end_point else _get_config('OSS_ENDPOINT'))
         self.bucket_name = bucket_name if bucket_name else _get_config('OSS_BUCKET_NAME')
-        self.expire_time = expire_time if expire_time else _get_config('OSS_EXPIRE_TIME', default=60*60*24*30)
+        self.expire_time = expire_time if expire_time else int(_get_config('OSS_EXPIRE_TIME', default=60*60*24*30))
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
@@ -202,7 +202,7 @@ class OssStorage(Storage):
         key = self._get_key_name(name)
 
         if self.bucket_acl == BUCKET_ACL_PRIVATE:
-            return self.bucket.sign_url('GET', key, expire=self.expire_time)
+            return self.bucket.sign_url('GET', key, expires=self.expire_time)
 
         scheme, endpoint = self.end_point.split('//')
         return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
