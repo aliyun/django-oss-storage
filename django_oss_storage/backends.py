@@ -84,6 +84,10 @@ class OssStorage(Storage):
         final_path = urljoin(base_path + "/", name)
         name = os.path.normpath(final_path.lstrip('/'))
 
+        # Add / to the end of path since os.path.normpath will remove it
+        if final_path.endswith('/') and not name.endswith('/'):
+            name += '/'
+
         if six.PY2:
             name = name.encode('utf-8')
         return name
@@ -131,7 +135,7 @@ class OssStorage(Storage):
         if name.endswith("/"):
             # This looks like a directory, but OSS has no concept of directories
             # need to check whether the key starts with this prefix
-            result = self.bucket.list_objects(prefix=target_name + '/', delimiter='', marker='', max_keys=1)
+            result = self.bucket.list_objects(prefix=target_name, delimiter='', marker='', max_keys=1)
             if len(result.object_list) == 0:
                 logger().debug("object list: %s", result.object_list)
             else:
