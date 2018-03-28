@@ -26,8 +26,8 @@ from oss2 import Auth, Service, Bucket, ObjectIterator, BUCKET_ACL_PRIVATE
 from .defaults import logger
 
 
-def _get_config(name):
-    config = os.environ.get(name, getattr(settings, name, None))
+def _get_config(name, default=None):
+    config = os.environ.get(name, getattr(settings, name, default))
     if config is not None:
         if isinstance(config, six.string_types):
             return config.strip()
@@ -56,11 +56,12 @@ class OssStorage(Storage):
     Aliyun OSS Storage
     """
 
-    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None):
+    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None, expire_time=None):
         self.access_key_id = access_key_id if access_key_id else _get_config('OSS_ACCESS_KEY_ID')
         self.access_key_secret = access_key_secret if access_key_secret else _get_config('OSS_ACCESS_KEY_SECRET')
         self.end_point = _normalize_endpoint(end_point if end_point else _get_config('OSS_ENDPOINT'))
         self.bucket_name = bucket_name if bucket_name else _get_config('OSS_BUCKET_NAME')
+        self.expire_time = expire_time if expire_time else _get_config('OSS_EXPIRE_TIME', default=60*60*24*30)
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
@@ -201,7 +202,7 @@ class OssStorage(Storage):
         key = self._get_key_name(name)
 
         if self.bucket_acl == BUCKET_ACL_PRIVATE:
-            return self.bucket.sign_url('GET', key, expire=60*60*24*30)
+            return self.bucket.sign_url('GET', key, expire=self.expire_time)
 
         scheme, endpoint = self.end_point.split('//')
         return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
