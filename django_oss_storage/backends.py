@@ -21,13 +21,13 @@ from tempfile import SpooledTemporaryFile
 
 import oss2.utils
 import oss2.exceptions
-from oss2 import Auth, Service, Bucket, ObjectIterator
+from oss2 import Auth, Service, Bucket, ObjectIterator, BUCKET_ACL_PRIVATE
 
 from .defaults import logger
 
 
-def _get_config(name):
-    config = os.environ.get(name, getattr(settings, name, None))
+def _get_config(name, default=None):
+    config = os.environ.get(name, getattr(settings, name, default))
     if config is not None:
         if isinstance(config, six.string_types):
             return config.strip()
@@ -56,11 +56,12 @@ class OssStorage(Storage):
     Aliyun OSS Storage
     """
 
-    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None):
+    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None, expire_time=None):
         self.access_key_id = access_key_id if access_key_id else _get_config('OSS_ACCESS_KEY_ID')
         self.access_key_secret = access_key_secret if access_key_secret else _get_config('OSS_ACCESS_KEY_SECRET')
         self.end_point = _normalize_endpoint(end_point if end_point else _get_config('OSS_ENDPOINT'))
         self.bucket_name = bucket_name if bucket_name else _get_config('OSS_BUCKET_NAME')
+        self.expire_time = expire_time if expire_time else _get_config('OSS_EXPIRE_TIME', default=60*60*24*30)
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
@@ -68,7 +69,7 @@ class OssStorage(Storage):
 
         # try to get bucket acl to check bucket exist or not
         try:
-            self.bucket.get_bucket_acl().acl
+            self.bucket_acl = self.bucket.get_bucket_acl().acl
         except oss2.exceptions.NoSuchBucket:
             raise SuspiciousOperation("Bucket '%s' does not exist." % self.bucket_name)
 
@@ -197,9 +198,14 @@ class OssStorage(Storage):
         logger().debug("files: %s", files)
         return dirs, files
 
-    def url(self, name, expire=60*60*24*30):
+    def url(self, name):
         key = self._get_key_name(name)
-        return self.bucket.sign_url('GET', key, expire)
+
+        if self.bucket_acl == BUCKET_ACL_PRIVATE:
+            return self.bucket.sign_url('GET', key, expire=self.expire_time)
+
+        scheme, endpoint = self.end_point.split('//')
+        return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
 
     def delete(self, name):
         name = self._get_key_name(name)
