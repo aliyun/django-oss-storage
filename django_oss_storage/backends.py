@@ -21,7 +21,7 @@ from tempfile import SpooledTemporaryFile
 
 import oss2.utils
 import oss2.exceptions
-from oss2 import Auth, Service, Bucket, ObjectIterator
+from oss2 import Auth, Service, Bucket, ObjectIterator, BUCKET_ACL_PRIVATE
 
 from .defaults import logger
 
@@ -68,7 +68,7 @@ class OssStorage(Storage):
 
         # try to get bucket acl to check bucket exist or not
         try:
-            self.bucket.get_bucket_acl().acl
+            self.bucket_acl = self.bucket.get_bucket_acl().acl
         except oss2.exceptions.NoSuchBucket:
             raise SuspiciousOperation("Bucket '%s' does not exist." % self.bucket_name)
 
@@ -199,7 +199,12 @@ class OssStorage(Storage):
 
     def url(self, name):
         key = self._get_key_name(name)
-        return self.bucket.sign_url('GET', key, expire=60*60*24*30)
+
+        if self.bucket_acl == BUCKET_ACL_PRIVATE:
+            return self.bucket.sign_url('GET', key, expire=60*60*24*30)
+
+        scheme, endpoint = self.end_point.split('//')
+        return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
 
     def delete(self, name):
         name = self._get_key_name(name)
