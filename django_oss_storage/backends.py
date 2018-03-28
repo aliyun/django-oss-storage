@@ -197,9 +197,9 @@ class OssStorage(Storage):
         logger().debug("files: %s", files)
         return dirs, files
 
-    def url(self, name, expire=60*60*24*30):
+    def url(self, name):
         key = self._get_key_name(name)
-        return self.bucket.sign_url('GET', key, expire)
+        return self.bucket.sign_url('GET', key, expire=60*60*24*30)
 
     def delete(self, name):
         name = self._get_key_name(name)
