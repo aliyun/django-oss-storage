@@ -80,6 +80,9 @@ class OssStorage(Storage):
         input   : test.txt
         output  : media/test.txt
         """
+        # urljoin won't work if name is absolute path
+        name = name.lstrip('/')
+        
         base_path = force_text(self.location)
         final_path = urljoin(base_path + "/", name)
         name = os.path.normpath(final_path.lstrip('/'))
