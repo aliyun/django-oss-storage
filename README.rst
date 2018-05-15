@@ -72,7 +72,11 @@ Use the following settings to configure AliCloud OSS file storage.
     OSS_ENDPOINT = <Your access endpoint>
 
     # The default location for your files
-    MEDIA_URL = '/media/'
+    OSS_MEDIA_LOCATION = '/media/'
+
+    # URL that handles the media served. This is only useful when put OSS behind Aliyun CDN.
+    # Value does not start with 'http' will be ignored.
+    MEDIA_URL = 'https://media.example.com/'
 
 Staticfiles storage settings
 ============================

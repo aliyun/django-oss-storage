@@ -211,8 +211,11 @@ class OssStorage(Storage):
         if self.bucket_acl == BUCKET_ACL_PRIVATE:
             return self.bucket.sign_url('GET', key, expires=self.expire_time)
 
-        scheme, endpoint = self.end_point.split('//')
-        return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
+        if settings.MEDIA_URL.startswith("http"):
+            return urljoin(settings.MEDIA_URL, key)
+        else:
+            scheme, endpoint = self.end_point.split('//')
+            return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
 
     def delete(self, name):
         name = self._get_key_name(name)
@@ -228,7 +231,7 @@ class OssStorage(Storage):
 
 class OssMediaStorage(OssStorage):
     def __init__(self):
-        self.location = settings.MEDIA_URL
+        self.location = getattr(settings, 'OSS_MEDIA_LOCATION', '/media/')
         logger().debug("locatin: %s", self.location)
         super(OssMediaStorage, self).__init__()
 
