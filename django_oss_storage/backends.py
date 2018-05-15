@@ -93,7 +93,8 @@ class OssStorage(Storage):
 
         if six.PY2:
             name = name.encode('utf-8')
-        return name
+        # Store filenames with forward slashes, even on Windows.
+        return name.replace('\\', '/')
 
     def _open(self, name, mode='rb'):
         logger().debug("name: %s, mode: %s", name, mode)
