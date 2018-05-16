@@ -86,10 +86,13 @@ All of the file storage settings are available for the staticfiles storage.
 .. code-block:: bash
 
     # The default location for your static files
-    STATIC_URL = '/static/'
+    OSS_STATIC_LOCATION = '/static/'
+
+    # URL that handles the static files served. This is only useful when put OSS behind Aliyun CDN.
+    MEDIA_URL = 'https://static.example.com/'
 
 staticfiles provides command 'collectstatic'. Run following command to collect all sub-folder 'static' of each app
-and upload to STATIC_URL.
+and upload to OSS_STATIC_LOCATION.
 
 .. code-block:: bash
 
