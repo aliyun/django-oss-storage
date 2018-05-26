@@ -56,7 +56,7 @@ class OssStorage(Storage):
     Aliyun OSS Storage
     """
 
-    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None, expire_time=None):
+    def __init__(self, access_key_id=None, access_key_secret=None, end_point=None, bucket_name=None, expire_time=None, location='', base_url=''):
         self.access_key_id = access_key_id if access_key_id else _get_config('OSS_ACCESS_KEY_ID')
         self.access_key_secret = access_key_secret if access_key_secret else _get_config('OSS_ACCESS_KEY_SECRET')
         self.end_point = _normalize_endpoint(end_point if end_point else _get_config('OSS_ENDPOINT'))
@@ -66,6 +66,8 @@ class OssStorage(Storage):
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
         self.bucket = Bucket(self.auth, self.end_point, self.bucket_name)
+        self.location = location
+        self.base_url = base_url
 
         # try to get bucket acl to check bucket exist or not
         try:
@@ -82,7 +84,7 @@ class OssStorage(Storage):
         """
         # urljoin won't work if name is absolute path
         name = name.lstrip('/')
-        
+
         base_path = force_text(self.location)
         final_path = urljoin(base_path + "/", name)
         name = os.path.normpath(final_path.lstrip('/'))
@@ -208,11 +210,14 @@ class OssStorage(Storage):
     def url(self, name):
         key = self._get_key_name(name)
 
+        # Return signed bucket url for private acl.
         if self.bucket_acl == BUCKET_ACL_PRIVATE:
             return self.bucket.sign_url('GET', key, expires=self.expire_time)
 
-        if settings.MEDIA_URL.startswith("http"):
-            return urljoin(settings.MEDIA_URL, key)
+        # For public or public-read acl bucket, use base_url is possible,
+        # otherwise fallback to public bucket url.
+        if self.base_url.startswith("http"):
+            return urljoin(self.base_url, key)
         else:
             scheme, endpoint = self.end_point.split('//')
             return urljoin(scheme + '//' + self.bucket_name + '.' + endpoint, key)
@@ -231,9 +236,9 @@ class OssStorage(Storage):
 
 class OssMediaStorage(OssStorage):
     def __init__(self):
-        self.location = getattr(settings, 'OSS_MEDIA_LOCATION', '/media/')
-        logger().debug("locatin: %s", self.location)
-        super(OssMediaStorage, self).__init__()
+        super(OssMediaStorage, self).__init__(
+            location=getattr(settings, 'OSS_MEDIA_LOCATION', '/media/'),
+            base_url=settings.MEDIA_URL)
 
     def save(self, name, content, max_length=None):
         return super(OssMediaStorage, self)._save(name, content)
@@ -241,9 +246,10 @@ class OssMediaStorage(OssStorage):
 
 class OssStaticStorage(OssStorage):
     def __init__(self):
-        self.location = getattr(settings, 'OSS_STATIC_LOCATION', '/static/')
-        logger().info("locatin: %s", self.location)
-        super(OssStaticStorage, self).__init__()
+        super(OssStaticStorage, self).__init__(
+            location=getattr(settings, 'OSS_STATIC_LOCATION', '/static/'),
+            base_url=settings.STATIC_URL
+        )
 
     def save(self, name, content, max_length=None):
         return super(OssStaticStorage, self)._save(name, content)
