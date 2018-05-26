@@ -236,8 +236,11 @@ class OssStorage(Storage):
 
 class OssMediaStorage(OssStorage):
     def __init__(self):
+        fallback_location = settings.MEDIA_URL
+        if fallback_location.startswith('http'):
+            fallback_location = '/media/'
         super(OssMediaStorage, self).__init__(
-            location=getattr(settings, 'OSS_MEDIA_LOCATION', '/media/'),
+            location=getattr(settings, 'OSS_MEDIA_LOCATION', fallback_location),
             base_url=settings.MEDIA_URL)
 
     def save(self, name, content, max_length=None):
@@ -246,8 +249,11 @@ class OssMediaStorage(OssStorage):
 
 class OssStaticStorage(OssStorage):
     def __init__(self):
+        fallback_location = settings.STATIC_URL
+        if fallback_location.startswith('http'):
+            fallback_location = '/static/'
         super(OssStaticStorage, self).__init__(
-            location=getattr(settings, 'OSS_STATIC_LOCATION', '/static/'),
+            location=getattr(settings, 'OSS_STATIC_LOCATION', fallback_location),
             base_url=settings.STATIC_URL
         )
 
