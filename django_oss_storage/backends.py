@@ -219,9 +219,6 @@ class OssMediaStorage(OssStorage):
         logger().debug("locatin: %s", self.location)
         super(OssMediaStorage, self).__init__()
 
-    def save(self, name, content, max_length=None):
-        return super(OssMediaStorage, self)._save(name, content)
-
 
 class OssStaticStorage(OssStorage):
     def __init__(self):
@@ -229,8 +226,6 @@ class OssStaticStorage(OssStorage):
         logger().info("locatin: %s", self.location)
         super(OssStaticStorage, self).__init__()
 
-    def save(self, name, content, max_length=None):
-        return super(OssStaticStorage, self)._save(name, content)
 
 class OssFile(File):
     """
