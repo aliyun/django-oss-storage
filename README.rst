@@ -46,6 +46,17 @@ Use the following settings to authenticate with AliCloud OSS.
     # AliCloud access key secret
     OSS_ACCESS_KEY_SECRET = <Your Access Key Secret>
 
+Storage settings
+=======================
+
+For public or public-read buckets, storage urls will be bucket_name.endpoint/key format
+
+For private buckets, storage urls will be signed url. The expires time can be set by OSS_EXPIRE_TIME as environment variable or as Django settings. The default value for OSS_EXPIRE_TIME is 30 days.
+
+.. code-block:: bash
+
+    OSS_EXPIRE_TIME = <Expire Time in Seconds>
+
 File storage settings
 =====================
 
