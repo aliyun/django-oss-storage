@@ -82,10 +82,14 @@ class OssStorage(Storage):
         """
         # urljoin won't work if name is absolute path
         name = name.lstrip('/')
-        
+
         base_path = force_text(self.location)
         final_path = urljoin(base_path + "/", name)
         name = os.path.normpath(final_path.lstrip('/'))
+
+        # Add / to the end of path since os.path.normpath will remove it
+        if final_path.endswith('/') and not name.endswith('/'):
+            name += '/'
 
         if six.PY2:
             name = name.encode('utf-8')
