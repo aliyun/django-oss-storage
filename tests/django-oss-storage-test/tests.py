@@ -3,6 +3,8 @@
 import os
 import logging
 import requests
+import oss2
+
 from datetime import timedelta
 from contextlib import contextmanager
 from logging.handlers import RotatingFileHandler
@@ -87,30 +89,37 @@ class TestOssStorage(SimpleTestCase):
         with self.save_file():
             logging.info("content type: %s", default_storage.content_type("test.txt"))
             self.assertEqual(default_storage.open("test.txt").read(), b"test")
-            self.assertEqual(requests.get(default_storage.url("test.txt", 60)).content, b"test")
+            self.assertEqual(requests.get(default_storage.url("test.txt")).content, b"test")
 
     def test_save_big_file(self):
         with self.save_file(content=b"test" * 1000):
             logging.info("content type: %s", default_storage.content_type("test.txt"))
             self.assertEqual(default_storage.open("test.txt").read(), b"test" * 1000)
-            self.assertEqual(requests.get(default_storage.url("test.txt", 60)).content, b"test" * 1000)
+            self.assertEqual(requests.get(default_storage.url("test.txt")).content, b"test" * 1000)
 
     def test_url(self):
-        with self.save_file():
-            url = default_storage.url("test.txt", 100)
+        with self.save_file(name="folder/test?+123.txt"):
+            url = default_storage.url("folder/test?+123.txt")
             logging.info("url: %s", url)
             response = requests.get(url)
-
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.content, b"test")
             self.assertEqual(response.headers['Content-Type'], "text/plain")
+
+            auth = oss2.Auth(settings.OSS_ACCESS_KEY_ID, settings.OSS_ACCESS_KEY_SECRET)
+            bucket = oss2.Bucket(auth, settings.OSS_ENDPOINT, settings.OSS_BUCKET_NAME)
+            if bucket.get_bucket_acl().acl == 'private':
+                self.assertEqual(url.find('.txt?') > 0, True)
+            else:
+                self.assertEqual(url.find('.txt?') > 0, False)
+
 
     def test_url_cn(self):
         objname = to_unicode("本地文件名.txt")
         logging.info("objname: %s", objname)
         with self.save_file(objname, content=u'我的座右铭') as name:
             self.assertEqual(name, objname)
-            url = default_storage.url(objname, 300)
+            url = default_storage.url(objname)
             logging.info("url: %s", url)
             response = requests.get(url)
             self.assertEqual(response.status_code, 200)
@@ -229,7 +238,7 @@ class TestOssStorage(SimpleTestCase):
 
     def test_static_url(self):
         with self.save_file(storage=staticfiles_storage):
-            url = staticfiles_storage.url("test.txt", 60)
+            url = staticfiles_storage.url("test.txt")
             logging.info("url: %s", url)
             response = requests.get(url)
 
@@ -239,7 +248,7 @@ class TestOssStorage(SimpleTestCase):
 
     def test_configured_url(self):
         with self.settings(MEDIA_URL= "/media/"), self.save_file():
-            url = default_storage.url("test.txt", 60)
+            url = default_storage.url("test.txt")
             logging.info("url: %s", url)
             response = requests.get(url)
 
