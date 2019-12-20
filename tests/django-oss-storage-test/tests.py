@@ -18,6 +18,7 @@ from django.utils.timezone import is_naive, make_naive, utc
 from django_oss_storage.backends import OssError, OssMediaStorage, OssStaticStorage, OssStorage, _get_config
 from django_oss_storage import defaults
 from oss2 import to_unicode
+from django.core.files.base import ContentFile
 
 logger = logging.getLogger('')
 logger.setLevel(logging.INFO)
@@ -33,7 +34,7 @@ class TestOssStorage(SimpleTestCase):
     def save_file(self, name="test.txt", content=b"test", storage=default_storage):
         logging.info("name: %s", name)
         logging.debug("content: %s", content)
-        name = storage.save(name, content)
+        name = storage.save(name, ContentFile(content,name))
         try:
             yield name
         finally:
@@ -74,14 +75,15 @@ class TestOssStorage(SimpleTestCase):
             self.assertEqual(handle.read(), b"test")
 
     def test_save_and_open_cn(self):
-        with self.save_file(content=u'我的座右铭') as name:
+        data = oss2.compat.to_bytes('我的座右铭')
+        with self.save_file(content=data) as name:
             self.assertEqual(name, "test.txt")
             handle = default_storage.open(name)
             logging.info("handle: %s", handle)
-            self.assertEqual(handle.read(), b'\xe6\x88\x91\xe7\x9a\x84\xe5\xba\xa7\xe5\x8f\xb3\xe9\x93\xad')
+            self.assertEqual(handle.read(), data)
 
     def test_save_text_mode(self):
-        with self.save_file(content="test"):
+        with self.save_file(content=b"test"):
             self.assertEqual(default_storage.open("test.txt").read(), b"test")
             self.assertEqual(default_storage.content_type("test.txt"), "text/plain")
 
@@ -117,13 +119,14 @@ class TestOssStorage(SimpleTestCase):
     def test_url_cn(self):
         objname = to_unicode("本地文件名.txt")
         logging.info("objname: %s", objname)
-        with self.save_file(objname, content=u'我的座右铭') as name:
+        data = oss2.compat.to_bytes('我的座右铭')
+        with self.save_file(objname, data) as name:
             self.assertEqual(name, objname)
             url = default_storage.url(objname)
             logging.info("url: %s", url)
             response = requests.get(url)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.content, b'\xe6\x88\x91\xe7\x9a\x84\xe5\xba\xa7\xe5\x8f\xb3\xe9\x93\xad')
+            self.assertEqual(response.content, data)
             self.assertEqual(response.headers['Content-Type'], "text/plain")
 
     def test_exists(self):
@@ -227,14 +230,17 @@ class TestOssStorage(SimpleTestCase):
     def test_overwrite_cn(self):
         objname = to_unicode("本地文件名.txt")
         logging.info("objname: %s", objname)
-        with self.save_file(objname, content=u'我的座右铭') as name_1:
+        data = oss2.compat.to_bytes('我的座右铭')
+        with self.save_file(objname, content=data) as name_1:
             self.assertEqual(name_1, objname)
             handle = default_storage.open(name_1)
-            self.assertEqual(handle.read(), b'\xe6\x88\x91\xe7\x9a\x84\xe5\xba\xa7\xe5\x8f\xb3\xe9\x93\xad')
-        with self.save_file(objname, content=u'这是一个测试') as name_2:
+            self.assertEqual(handle.read(), data)
+
+        data = oss2.compat.to_bytes('这是一个测试')
+        with self.save_file(objname, content=data) as name_2:
             self.assertEqual(name_2, objname)
             handle = default_storage.open(name_2)
-            self.assertEqual(handle.read(), b'\xe8\xbf\x99\xe6\x98\xaf\xe4\xb8\x80\xe4\xb8\xaa\xe6\xb5\x8b\xe8\xaf\x95')
+            self.assertEqual(handle.read(), data)
 
     def test_static_url(self):
         with self.save_file(storage=staticfiles_storage):
@@ -279,7 +285,7 @@ class TestOssStorage(SimpleTestCase):
             self.assertEqual(storage_with_populated_arguments.access_key_secret,
                              settings.OSS_ACCESS_KEY_SECRET)
             self.assertEqual(storage_with_populated_arguments.end_point.split('//')[-1],
-                             settings.OSS_ENDPOINT)
+                             settings.OSS_ENDPOINT.split('//')[-1])
             self.assertEqual(storage_with_populated_arguments.bucket_name,
                              settings.OSS_BUCKET_NAME)
 
@@ -289,7 +295,7 @@ class TestOssStorage(SimpleTestCase):
             self.assertEqual(storage_with_default_arguments.access_key_secret,
                              settings.OSS_ACCESS_KEY_SECRET)
             self.assertEqual(storage_with_default_arguments.end_point.split('//')[-1],
-                             settings.OSS_ENDPOINT)
+                             settings.OSS_ENDPOINT.split('//')[-1])
             self.assertEqual(storage_with_default_arguments.bucket_name,
                              settings.OSS_BUCKET_NAME)
 
