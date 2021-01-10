@@ -28,6 +28,7 @@ formatter = logging.Formatter("%(asctime)s %(levelname)-8s[%(filename)s:%(lineno
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
+
 class TestOssStorage(SimpleTestCase):
 
     @contextmanager
@@ -49,6 +50,17 @@ class TestOssStorage(SimpleTestCase):
             yield name
         finally:
             pass
+
+    def test_get_relative_paths(self):
+        self.assertEqual(
+            OssStorage.get_relative_location("/home/user_test/project/test1"),
+            "/home/user_test/project/test1")
+        with self.settings(BASE_DIR="/home/user_test/project/"):
+            self.assertEqual(OssStorage.get_relative_location("/test2"), "/test2")
+            self.assertEqual(OssStorage.get_relative_location("/home/user_test/project/test3"), "/test3")
+            self.assertEqual(
+                OssStorage.get_relative_location("/home2/user_test/project/test4"),
+                "/home2/user_test/project/test4")
 
     def test_settings_mported(self):
         # Make sure bucket 'test-tmp-b1' exist under your OSS account
