@@ -235,6 +235,10 @@ class OssStorage(Storage):
         logger().debug("delete name: %s", name)
         result = self.bucket.delete_object(name)
 
+    def update_object_meta(self, name, headers=None):
+        key = self._get_key_name(name)
+        self.bucket.update_object_meta(key, headers)
+
     @classmethod
     def get_relative_location(cls, location):
         """get relative location for OSS storage. since Django requires settings.MEDIA_ROOT and settings.STATIC_ROOT
