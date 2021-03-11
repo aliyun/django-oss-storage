@@ -65,7 +65,7 @@ class OssStorage(Storage):
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
-        self.bucket = Bucket(self.auth, self.end_point, self.bucket_name)
+        self.bucket = Bucket(self.auth, self.end_point, self.bucket_name, is_cname = "aliyuncs.com" not in self.end_point)
 
         # try to get bucket acl to check bucket exist or not
         try:
