@@ -246,10 +246,11 @@ class OssStorage(Storage):
         Most of the case there is a BASE_DIR or ROOT_DIR setting as the root directory of the project, we calculate
         relative path based on these two settings if they exist."""
         base_dir = None
+        location = str(location)
         if hasattr(settings, "BASE_DIR"):           #
-            base_dir = settings.BASE_DIR
+            base_dir = str(settings.BASE_DIR)
         elif hasattr(settings, "ROOT_DIR"):
-            base_dir = settings.ROOT_DIR
+            base_dir = str(settings.ROOT_DIR)
         if base_dir is None:
             return location
         if not location.startswith(base_dir):
