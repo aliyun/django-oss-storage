@@ -43,12 +43,14 @@ def _normalize_endpoint(endpoint):
     else:
         return endpoint
 
+
 class OssError(Exception):
     def __init__(self, value):
         self.value = value
 
     def __str__(self):
         return repr(self.value)
+
 
 @deconstructible
 class OssStorage(Storage):
@@ -61,7 +63,8 @@ class OssStorage(Storage):
         self.access_key_secret = access_key_secret if access_key_secret else _get_config('OSS_ACCESS_KEY_SECRET')
         self.end_point = _normalize_endpoint(end_point if end_point else _get_config('OSS_ENDPOINT'))
         self.bucket_name = bucket_name if bucket_name else _get_config('OSS_BUCKET_NAME')
-        self.expire_time = expire_time if expire_time else int(_get_config('OSS_EXPIRE_TIME', default=60*60*24*30))
+        self.expire_time = expire_time if expire_time else int(
+            _get_config('OSS_EXPIRE_TIME', default=60 * 60 * 24 * 30))
 
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
@@ -80,8 +83,9 @@ class OssStorage(Storage):
         input   : test.txt
         output  : media/test.txt
         """
+        # Store filenames with forward slashes, even on Windows.
         # urljoin won't work if name is absolute path
-        name = name.lstrip('/')
+        name = name.replace('\\', '/').lstrip('/')
 
         base_path = force_text(self.location)
         final_path = urljoin(base_path + "/", name)
@@ -91,10 +95,14 @@ class OssStorage(Storage):
         if final_path.endswith('/') and not name.endswith('/'):
             name += '/'
 
+        # Store filenames with forward slashes, even on Windows.
+        # OSS does not work with name starts with splashes
+        name = name.replace('\\', '/').lstrip('/')
+
         if six.PY2:
             name = name.encode('utf-8')
-        # Store filenames with forward slashes, even on Windows.
-        return name.replace('\\', '/')
+
+        return name
 
     def _open(self, name, mode='rb'):
         logger().debug("name: %s, mode: %s", name, mode)
@@ -105,7 +113,7 @@ class OssStorage(Storage):
         logger().debug("target name: %s", target_name)
         try:
             # Load the key into a temporary file
-            tmpf = SpooledTemporaryFile(max_size=10*1024*1024)  # 10MB
+            tmpf = SpooledTemporaryFile(max_size=10 * 1024 * 1024)  # 10MB
             obj = self.bucket.get_object(target_name)
             logger().info("content length: %d, requestid: %s", obj.content_length, obj.request_id)
             if obj.content_length is None:
@@ -209,9 +217,9 @@ class OssStorage(Storage):
     def url(self, name):
         key = self._get_key_name(name)
         str = self.bucket.sign_url('GET', key, expires=self.expire_time)
-        if self.bucket_acl != BUCKET_ACL_PRIVATE :
+        if self.bucket_acl != BUCKET_ACL_PRIVATE:
             idx = str.find('?')
-            if idx > 0: 
+            if idx > 0:
                 str = str[:idx].replace('%2F', '/')
         return str
 
@@ -227,16 +235,39 @@ class OssStorage(Storage):
         logger().debug("delete name: %s", name)
         result = self.bucket.delete_object(name)
 
+    def update_object_meta(self, name, headers=None):
+        key = self._get_key_name(name)
+        self.bucket.update_object_meta(key, headers)
+
+    @classmethod
+    def get_relative_location(cls, location):
+        """get relative location for OSS storage. since Django requires settings.MEDIA_ROOT and settings.STATIC_ROOT
+        to be absolute paths, we provide this method to calculate the essential relative path.
+        Most of the case there is a BASE_DIR or ROOT_DIR setting as the root directory of the project, we calculate
+        relative path based on these two settings if they exist."""
+        base_dir = None
+        location = str(location)
+        if hasattr(settings, "BASE_DIR"):           #
+            base_dir = str(settings.BASE_DIR)
+        elif hasattr(settings, "ROOT_DIR"):
+            base_dir = str(settings.ROOT_DIR)
+        if base_dir is None:
+            return location
+        if not location.startswith(base_dir):
+            return location
+        return location[len(base_dir):]
+
+
 class OssMediaStorage(OssStorage):
     def __init__(self):
-        self.location = settings.MEDIA_URL
+        self.location = OssStorage.get_relative_location(settings.MEDIA_ROOT)
         logger().debug("locatin: %s", self.location)
         super(OssMediaStorage, self).__init__()
 
 
 class OssStaticStorage(OssStorage):
     def __init__(self):
-        self.location = settings.STATIC_URL
+        self.location = OssStorage.get_relative_location(settings.STATIC_ROOT)
         logger().info("locatin: %s", self.location)
         super(OssStaticStorage, self).__init__()
 

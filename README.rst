@@ -71,8 +71,18 @@ Use the following settings to configure AliCloud OSS file storage.
     # Refer https://www.alibabacloud.com/help/zh/doc-detail/31837.htm for OSS Region & Endpoint
     OSS_ENDPOINT = <Your access endpoint>
 
-    # The default location for your files
-    MEDIA_URL = '/media/'
+    # The default location for your project
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # The default location for your media files
+    # In both cases, your media files will be put into OSS://<your_bucket>/media/
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    MEDIA_ROOT = "/media/"
+
+    # Your can use this MEDIA_URL in your django templates
+    MEDIA_URL = "http://<your-bucket>.<your-endpoint>.aliyuncs.com/media/"
+    # Or your custom domain MEDIA_URL
+    MEDIA_URL = "http://<your-custom-domain>/media/"
 
 Staticfiles storage settings
 ============================
@@ -82,7 +92,14 @@ All of the file storage settings are available for the staticfiles storage.
 .. code-block:: bash
 
     # The default location for your static files
-    STATIC_URL = '/static/'
+    # In both case, your static files will be put into OSS://<your_bucket>/static/
+    STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+    STATIC_ROOT = "/static/"
+
+    # Your can use this STATIC_URL in your django templates
+    STATIC_URL = 'http://<your-bucket>.<your-endpoint>.aliyuncs.com/static/'
+    # Or your custom domain STATIC_URL
+    STATIC_URL = "http://<your-custom-domain>/static/"
 
 staticfiles provides command 'collectstatic'. Run following command to collect all sub-folder 'static' of each app
 and upload to STATIC_URL.
