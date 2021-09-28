@@ -71,9 +71,9 @@ Use the following settings to configure AliCloud OSS file storage.
     # Refer https://www.alibabacloud.com/help/zh/doc-detail/31837.htm for OSS Region & Endpoint
     OSS_ENDPOINT = <Your access endpoint>
 
-    # endpoint是否为自定义域名
+    # 用户自定义域名，用于外部访问（返回url）
     # Refer https://help.aliyun.com/document_detail/32028.html
-    OSS_IS_CNAME = True
+    OSS_USER_DOMAIN = <用户自定义域名>
 
     # The default location for your files
     MEDIA_URL = '/media/'
