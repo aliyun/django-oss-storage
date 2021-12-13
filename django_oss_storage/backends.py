@@ -63,6 +63,12 @@ class OssStorage(Storage):
         self.bucket_name = bucket_name if bucket_name else _get_config('OSS_BUCKET_NAME')
         self.expire_time = expire_time if expire_time else int(_get_config('OSS_EXPIRE_TIME', default=60*60*24*30))
 
+        self.sign_url_enabled = getattr(settings, 'OSS_SIGN_URL_ENABLED', True)
+        self.sign_url_params = getattr(settings, 'OSS_SIGN_URL_PARAMS', None)
+        self.url_slash_safe = getattr(settings, 'OSS_SLASH_SAFE', False)
+
+        self.overwrite = getattr(settings, 'OSS_OVERWRITE', False)
+
         self.auth = Auth(self.access_key_id, self.access_key_secret)
         self.service = Service(self.auth, self.end_point)
         self.bucket = Bucket(self.auth, self.end_point, self.bucket_name)
@@ -208,12 +214,12 @@ class OssStorage(Storage):
 
     def url(self, name):
         key = self._get_key_name(name)
-        str = self.bucket.sign_url('GET', key, expires=self.expire_time)
-        if self.bucket_acl != BUCKET_ACL_PRIVATE :
-            idx = str.find('?')
-            if idx > 0: 
-                str = str[:idx].replace('%2F', '/')
-        return str
+        url = None
+        if self.bucket_acl != BUCKET_ACL_PRIVATE or self.sign_url_enabled == False:
+            url = self.bucket._make_url(self.bucket_name, key, slash_safe=self.url_slash_safe)
+        else:
+            url = self.bucket.sign_url('GET', key, expires=self.expire_time, params=self.sign_url_params, slash_safe=self.url_slash_safe)
+        return url
 
     def delete(self, name):
         name = self._get_key_name(name)
@@ -226,6 +232,12 @@ class OssStorage(Storage):
             name += '/'
         logger().debug("delete name: %s", name)
         result = self.bucket.delete_object(name)
+
+    def get_available_name(self, name, max_length=None):
+        if self.overwrite:
+            return name
+        else:
+            return super().get_available_name(name, max_length)
 
 class OssMediaStorage(OssStorage):
     def __init__(self):
