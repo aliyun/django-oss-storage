@@ -14,7 +14,12 @@ from django.core.files import File
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.core.files.storage import Storage
 from django.conf import settings
-from django.utils.encoding import force_text, force_bytes
+
+try:
+    from django.utils.encoding import force_text, force_bytes
+except ImportError:  # Django >= 4.0
+    from django.utils.encoding import force_str as force_text
+
 from django.utils.deconstruct import deconstructible
 from django.utils.timezone import utc
 from tempfile import SpooledTemporaryFile
