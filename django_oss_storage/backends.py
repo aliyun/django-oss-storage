@@ -14,9 +14,9 @@ from django.core.files import File
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.core.files.storage import Storage
 from django.conf import settings
-from django.utils.encoding import force_text, force_bytes
+from django.utils.encoding import force_str, force_bytes
 from django.utils.deconstruct import deconstructible
-from django.utils.timezone import utc
+from django.utils.timezone import get_current_timezone
 from tempfile import SpooledTemporaryFile
 
 import oss2.utils
@@ -83,7 +83,7 @@ class OssStorage(Storage):
         # urljoin won't work if name is absolute path
         name = name.lstrip('/')
 
-        base_path = force_text(self.location)
+        base_path = force_str(self.location)
         final_path = urljoin(base_path + "/", name)
         name = os.path.normpath(final_path.lstrip('/'))
 
@@ -174,7 +174,7 @@ class OssStorage(Storage):
         file_meta = self.get_file_meta(name)
 
         if settings.USE_TZ:
-            return datetime.utcfromtimestamp(file_meta.last_modified).replace(tzinfo=utc)
+            return datetime.utcfromtimestamp(file_meta.last_modified).replace(tzinfo=get_current_timezone())
         else:
             return datetime.fromtimestamp(file_meta.last_modified)
 
