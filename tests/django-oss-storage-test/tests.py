@@ -14,7 +14,12 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.storage import default_storage
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.utils import timezone
-from django.utils.timezone import is_naive, make_naive, utc
+from django.utils.timezone import is_naive, make_naive
+try:
+    from django.utils.timezone import utc
+except ImportError:
+    from datetime import timezone
+    utc = timezone.utc
 from django_oss_storage.backends import OssError, OssMediaStorage, OssStaticStorage, OssStorage, _get_config
 from django_oss_storage import defaults
 from oss2 import to_unicode
@@ -27,6 +32,7 @@ fh = RotatingFileHandler(logfile, mode='a', maxBytes=50 * 1024 * 1024, backupCou
 formatter = logging.Formatter("%(asctime)s %(levelname)-8s[%(filename)s:%(lineno)d(%(funcName)s)] %(message)s")
 fh.setFormatter(formatter)
 logger.addHandler(fh)
+
 
 class TestOssStorage(SimpleTestCase):
 
@@ -49,6 +55,17 @@ class TestOssStorage(SimpleTestCase):
             yield name
         finally:
             pass
+
+    def test_get_relative_paths(self):
+        self.assertEqual(
+            OssStorage.get_relative_location("/home/user_test/project/test1"),
+            "/home/user_test/project/test1")
+        with self.settings(BASE_DIR="/home/user_test/project/"):
+            self.assertEqual(OssStorage.get_relative_location("/test2"), "/test2")
+            self.assertEqual(OssStorage.get_relative_location("/home/user_test/project/test3"), "/test3")
+            self.assertEqual(
+                OssStorage.get_relative_location("/home2/user_test/project/test4"),
+                "/home2/user_test/project/test4")
 
     def test_settings_mported(self):
         # Make sure bucket 'test-tmp-b1' exist under your OSS account
@@ -278,13 +295,13 @@ class TestOssStorage(SimpleTestCase):
             storage_with_populated_arguments = OssStorage(
                 access_key_id=settings.OSS_ACCESS_KEY_ID,
                 access_key_secret=settings.OSS_ACCESS_KEY_SECRET,
-                end_point=settings.OSS_ENDPOINT,
+                endpoint=settings.OSS_ENDPOINT,
                 bucket_name=settings.OSS_BUCKET_NAME)
             self.assertEqual(storage_with_populated_arguments.access_key_id,
                              settings.OSS_ACCESS_KEY_ID)
             self.assertEqual(storage_with_populated_arguments.access_key_secret,
                              settings.OSS_ACCESS_KEY_SECRET)
-            self.assertEqual(storage_with_populated_arguments.end_point.split('//')[-1],
+            self.assertEqual(storage_with_populated_arguments.endpoint.split('//')[-1],
                              settings.OSS_ENDPOINT.split('//')[-1])
             self.assertEqual(storage_with_populated_arguments.bucket_name,
                              settings.OSS_BUCKET_NAME)
@@ -294,7 +311,7 @@ class TestOssStorage(SimpleTestCase):
                              settings.OSS_ACCESS_KEY_ID)
             self.assertEqual(storage_with_default_arguments.access_key_secret,
                              settings.OSS_ACCESS_KEY_SECRET)
-            self.assertEqual(storage_with_default_arguments.end_point.split('//')[-1],
+            self.assertEqual(storage_with_default_arguments.endpoint.split('//')[-1],
                              settings.OSS_ENDPOINT.split('//')[-1])
             self.assertEqual(storage_with_default_arguments.bucket_name,
                              settings.OSS_BUCKET_NAME)
